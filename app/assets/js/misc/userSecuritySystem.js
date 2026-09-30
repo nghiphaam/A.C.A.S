@@ -6,30 +6,29 @@
     let tabSwitchCount = 0;
     let lastSwitchTime = Date.now();
 
-    if(typeof document.hidden !== "undefined") {
-        function handleVisibilityChange() {
-            if(document.hidden) {
-                const currentTime = Date.now();
+    function handleVisibilityChange() {
+        if(!document.hidden) return;
 
-                const timeElapsed = currentTime - lastSwitchTime;
+        const currentTime = Date.now();
+        const timeElapsed = currentTime - lastSwitchTime;
 
-                if (timeElapsed >= tabSwitchTimeout) {
-                    tabSwitchCount = 0;
-                }
-
-                tabSwitchCount++;
-
-                if (tabSwitchCount >= tabSwitchThreshold) {
-                    tabSwitchCount = 0;
-
-                    const msg = TRANS_OBJ?.excessiveTabChangeWarning ?? 'You are switching tabs frequently. This may look suspicious.';
-                    toast.warning(msg, 25000);
-                }
-
-                lastSwitchTime = currentTime;
-            }
+        if(timeElapsed >= tabSwitchTimeout) {
+            tabSwitchCount = 0;
         }
 
+        tabSwitchCount++;
+
+        if(tabSwitchCount >= tabSwitchThreshold) {
+            tabSwitchCount = 0;
+
+            const msg = TRANS_OBJ?.excessiveTabChangeWarning ?? 'You are switching tabs frequently. This may look suspicious.';
+            toast.warning(msg, 25000);
+        }
+
+        lastSwitchTime = currentTime;
+    }
+
+    if(typeof document.hidden !== "undefined") {
         document.addEventListener("visibilitychange", handleVisibilityChange, false);
     }
 })();

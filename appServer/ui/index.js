@@ -10,27 +10,28 @@ const engineFilePicker = document.getElementById('filePicker');
 let savedEngines = [];
 let serverConnectionStatus = false;
 
-(async () => {
+async function loadSavedEngines() {
     savedEngines = await window.engineAPI.getSavedEngines();
-})();
+}
 
-document.querySelectorAll('a.external')
-    .forEach(a => {
-        a.addEventListener('click', e=>{
-            e.preventDefault();
-            window.electronAPI.openExternal(a.href);
+function initializeExternalLinks() {
+    document.querySelectorAll('a.external').forEach(link => {
+        link.addEventListener('click', event => {
+            event.preventDefault();
+            window.electronAPI.openExternal(link.href);
         });
     });
+}
 
-[document.querySelector('.engine-grid')]
-    .forEach(scrollContainer => {
-        if(!scrollContainer) return;
+function initializeHorizontalScroll() {
+    const scrollContainer = document.querySelector('.engine-grid');
+    if(!scrollContainer) return;
 
-        scrollContainer.addEventListener('wheel', (evt) => {
-            evt.preventDefault();
-            scrollContainer.scrollLeft += evt.deltaY;
-        });
+    scrollContainer.addEventListener('wheel', event => {
+        event.preventDefault();
+        scrollContainer.scrollLeft += event.deltaY;
     });
+}
 
 stopBtn.onclick = () => window.engineAPI.killAllEngines();
 clearBtn.onclick = () => {
@@ -68,6 +69,45 @@ function refreshEngineCards(aliveEngineProcesses) {
         .forEach(x => x.classList.toggle('active', aliveIds.includes(x.dataset.engineId)));
 }
 
+function createEngineCard(engine) {
+    const card = document.createElement('div');
+    card.className = 'card engine-card acas-fancy-button';
+    card.dataset.engineId = engine.engineId;
+
+    const top = document.createElement('div');
+    top.className = 'top';
+
+    const title = document.createElement('div');
+    title.className = 'engine-card-title';
+    title.textContent = engine.title;
+
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn acas-fancy-button';
+    removeBtn.onclick = async event => {
+        event.stopPropagation();
+
+        const result = await window.engineAPI.removeEngine(engine.path);
+        if(typeof result === 'string') toast.error(result, 5000);
+    };
+
+    const icon = document.createElement('i');
+    icon.className = 'bi bi-x';
+    removeBtn.appendChild(icon);
+    top.append(title, removeBtn);
+
+    const bottom = document.createElement('div');
+    bottom.className = 'bottom';
+
+    const path = document.createElement('p');
+    path.textContent = GET_NICE_PATH(engine.path);
+    bottom.appendChild(path);
+
+    card.append(top, bottom);
+    card.onclick = () => toast.message('Please control the engine from the A.C.A.S web GUI!', 1000);
+
+    return card;
+}
+
 async function renderEngineGrid(engines) {
     // This parameter used to be called savedEngines and shadowed the module-level list,
     // so the IPC refresh never reached it and console.js kept reading a stale (often
@@ -84,49 +124,7 @@ async function renderEngineGrid(engines) {
     savedEngines.forEach(engine => {
         if(engineUiGrid.querySelector(`[data-engine-id="${engine.engineId}"]`)) return;
 
-        const card = document.createElement('div');
-        card.className = 'card engine-card acas-fancy-button';
-        card.dataset.engineId = engine.engineId;
-
-        const top = document.createElement('div');
-        top.className = 'top';
-
-        const title = document.createElement('div');
-        title.classList.add('engine-card-title');
-        title.textContent = engine.title;
-
-        const removeBtn = document.createElement('button');
-        removeBtn.className = 'remove-btn acas-fancy-button';
-        removeBtn.onclick = async (e) => {
-            e.stopPropagation();
-
-            const result = await window.engineAPI.removeEngine(engine.path);
-
-            if(typeof result === 'string') toast.error(result, 5000);
-        };
-
-        const icon = document.createElement('i');
-        icon.className = 'bi bi-x';
-        removeBtn.appendChild(icon);
-
-        top.appendChild(title);
-        top.appendChild(removeBtn);
-
-        const bottom = document.createElement('div');
-        bottom.className = 'bottom';
-
-        const path = document.createElement('p');
-        path.textContent = GET_NICE_PATH(engine.path);
-        bottom.appendChild(path);
-
-        card.appendChild(top);
-        card.appendChild(bottom);
-
-        card.onclick = () => {
-            toast.message('Please control the engine from the A.C.A.S web GUI!', 1000);
-        };
-
-        engineUiGrid.appendChild(card);
+        engineUiGrid.appendChild(createEngineCard(engine));
     });
 
     await window.serverAPI.sendEnginesList();
@@ -183,3 +181,7 @@ window.toastAPI.onMessage(({ type, text, ms }) => {
 window.engineAPI.onLog(({ text, type, identifierObj }) => {
     log(text, type, identifierObj);
 });
+
+loadSavedEngines();
+initializeExternalLinks();
+initializeHorizontalScroll();

@@ -2,6 +2,19 @@ import { saveSetting, removeSetting } from './settings.js';
 import { runSettingChangeObserver } from './settingChangeObserver.js';
 import { doesDropdownItemExist } from './domDropdown.js';
 
+const REFRESH_REQUIRED_SETTING_KEYS = new Set([
+    'displayMovesOnExternalSite',
+    'renderOnExternalSite',
+    'movesOnDemand',
+    'isUserscriptGhost'
+]);
+
+function clampInputValue(value, min, max) {
+    const clamped = Math.max(min, Math.min(max, value));
+
+    return Number.isNaN(clamped) ? min : clamped;
+}
+
 export function setInputValue(elem, val, min, max) {
     const isCheckbox = elem.type === 'checkbox';
 
@@ -24,9 +37,7 @@ export function setInputValue(elem, val, min, max) {
             });
         } else {
             if(min != null && max != null) {
-                const clamped = Math.max(min, Math.min(max, val));
-
-                val = Number.isNaN(clamped) ? min : clamped;
+                val = clampInputValue(val, min, max);
             }
         }
 
@@ -83,20 +94,13 @@ export function initializeSettingInputElem(elem, skipDefaultValueSet) {
 
     elem.onchange = e => {
         if(isRange && elem.dataset?.between) {
-            const clamped = Math.max(min, Math.min(max, e.target.value));
-
-            e.target.value = Number.isNaN(clamped) ? min : clamped;
+            e.target.value = clampInputValue(e.target.value, min, max);
         }
 
         if(e.target.value || e.target.checked || e.target.value === '') {
             saveSetting(elem, true);
 
-            if(
-                e?.target?.dataset?.key === 'displayMovesOnExternalSite' ||
-                e?.target?.dataset?.key === 'renderOnExternalSite' ||
-                e?.target?.dataset?.key === 'movesOnDemand' ||
-                e?.target?.dataset?.key === 'isUserscriptGhost'
-            ) {
+            if(REFRESH_REQUIRED_SETTING_KEYS.has(e?.target?.dataset?.key)) {
                 const msg = TRANS_OBJ?.refreshSiteNotification ?? 'Refresh the external site to see changes!';
                 toast.create('message', '👁‍🗨', msg, 3000);
             }

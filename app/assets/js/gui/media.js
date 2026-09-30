@@ -12,6 +12,7 @@ export function setMediaMetadata(metadata) {
 
 export function initMediaSession() {
     const audio = document.querySelector('#silence-audio');
+    const audioStartEvents = ['click', 'keydown', 'touchstart'];
 
     audio.play().catch(() => {
         console.log('Autoplay blocked, waiting for user gesture...');
@@ -21,15 +22,11 @@ export function initMediaSession() {
         audio.play().then(() => {
             toast.message(TRANS_OBJ?.playingSilentAudio ?? 'Playing a silent audiotrack for stability!', 1500);
 
-            window.removeEventListener('click', startAudio);
-            window.removeEventListener('keydown', startAudio);
-            window.removeEventListener('touchstart', startAudio);
+            audioStartEvents.forEach(eventName => window.removeEventListener(eventName, startAudio));
         });
     }
 
-    window.addEventListener('click', startAudio);
-    window.addEventListener('keydown', startAudio);
-    window.addEventListener('touchstart', startAudio);
+    audioStartEvents.forEach(eventName => window.addEventListener(eventName, startAudio));
 
     if('mediaSession' in navigator) {
         setMediaMetadata({

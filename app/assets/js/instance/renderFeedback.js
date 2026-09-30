@@ -1,11 +1,29 @@
 import MoveEvaluator from '../MoveEvaluator.js';
 
+function clearFeedback(instance, profileID) {
+    if(!profileID || !instance.pV[profileID]) return;
+
+    const previousFeedbacks = instance.pV[profileID].activeFeedbackDisplays;
+
+    if(previousFeedbacks.length) {
+        previousFeedbacks.forEach(feedback => {
+            if(feedback.elem) feedback.elem.remove();
+        });
+
+        instance.pV[profileID].activeFeedbackDisplays = [];
+    }
+}
+
+function getFeedbackProfiles(profiles) {
+    return profiles.filter(profile => profile.config.enableMoveRatings || profile.config.enableEnemyFeedback);
+}
+
 export default async function renderFeedback(gameStateObj) {
     const currentFen = gameStateObj.fen.full;
     const profiles = await GET_PROFILES();
 
     const display = async (from, to, cp, category, label, profileID) => {
-        clearFeedback(profileID);
+        clearFeedback(this, profileID);
 
         const feedbackOnExternalSite = await this.getConfigValue(this.configKeys.feedbackOnExternalSite, profileID);
 
@@ -40,29 +58,13 @@ export default async function renderFeedback(gameStateObj) {
         }
     }
 
-    const clearFeedback = profileID => {
-        if(!profileID) return;
-        if(!this.pV[profileID]) return;
-
-        // Remove all previous metrics
-        const previousFeedbacks = this.pV[profileID].activeFeedbackDisplays;
-
-        if(previousFeedbacks.length) {
-            previousFeedbacks.forEach(x => {
-                if(x.elem) x.elem.remove();
-            });
-
-            this.pV[profileID].activeFeedbackDisplays = [];
-        }
-    }
-
     // Remove any existing feedback
     profiles.filter(p => !p.config.enableMoveRatings || !p.config.enableEnemyFeedback).forEach(profileObj => {
-        clearFeedback(profileObj?.name);
+        clearFeedback(this, profileObj?.name);
     });
 
     // Display new feedback
-    for(const profileObj of profiles.filter(p => p.config.enableMoveRatings || p.config.enableEnemyFeedback)) {
+    for(const profileObj of getFeedbackProfiles(profiles)) {
         const profileID = profileObj.name;
 
         // GET_PROFILES() returns every configured profile, but pV only holds the ones

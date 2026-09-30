@@ -1,5 +1,10 @@
 import { updateEnginesList } from './gui/externalEngine.js';
 
+const isSocketOpen = socket => socket?.readyState === WebSocket.OPEN;
+const isSocketConnecting = socket => socket?.readyState === WebSocket.CONNECTING;
+const isAnyProfileUsingExternalEngine = () => Object.values(IS_EXTERNAL_ENGINE_SETTING_ACTIVE)
+    .some(Boolean);
+
 class AcasWebSocketClient {
     constructor(onEvent = null) {
         this.url = 'ws://localhost:2800';
@@ -19,7 +24,7 @@ class AcasWebSocketClient {
     }
 
     connect() {
-        if(this.socket && (this.socket.readyState === WebSocket.CONNECTING || this.socket.readyState === WebSocket.OPEN))
+        if(isSocketConnecting(this.socket) || isSocketOpen(this.socket))
             return;
 
         this.socket = new WebSocket(this.url);
@@ -47,11 +52,9 @@ class AcasWebSocketClient {
         this.socket.onclose = (event) => {
             window.wsConnectionOpen = false;
 
-            const isAnyProfileUsingExternal = Object.values(IS_EXTERNAL_ENGINE_SETTING_ACTIVE)
-                .find(v => v) ? true : false;
-            const shouldReconnect = isAnyProfileUsingExternal
+            const shouldReconnect = isAnyProfileUsingExternalEngine()
                 && ws === this // global var set at the bottom of this file
-                && this.socket && this.socket.readyState !== WebSocket.OPEN; // is still not connected
+                && !isSocketOpen(this.socket); // is still not connected
 
             if(this.reconnectionAttempts === 0 && shouldReconnect)
                 this._emit('close', { status: 'Disconnected' });
@@ -76,7 +79,7 @@ class AcasWebSocketClient {
     }
 
     async send(data) {
-        if(!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+        if(!isSocketOpen(this.socket)) {
             console.warn("Connection missing. Attempting quick reconnect...");
             this.connect();
 
@@ -98,10 +101,10 @@ class AcasWebSocketClient {
             const timeout = setTimeout(() => reject('Timeout'), timeoutMs);
             
             const check = () => {
-                if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                if(isSocketOpen(this.socket)) {
                     clearTimeout(timeout);
                     resolve();
-                } else if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+                } else if(isSocketConnecting(this.socket)) {
                     setTimeout(check, 50);
                 } else {
                     clearTimeout(timeout);
@@ -163,7 +166,7 @@ const ws = new AcasWebSocketClient((type, data) => {
 });
 
 export function connectAcasToServer() {
-    if(ws.socket && ws.socket.readyState === WebSocket.OPEN) {
+    if(isSocketOpen(ws.socket)) {
         //console.warn("Already connected to A.C.A.S server.");
         return;
     }

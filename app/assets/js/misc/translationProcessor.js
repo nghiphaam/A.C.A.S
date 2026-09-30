@@ -19,6 +19,30 @@
 		return `../assets/images/flags/${languageCode}.svg`;
 	}
 
+	function createLanguageDropdownItem([languageCode, languageSearchTerm], selectedFlagImg) {
+		const svgPath = getFlagPath(languageCode);
+		const dropdownItem = document.createElement('div');
+		dropdownItem.classList.add('dropdown-item');
+		dropdownItem.dataset.value = languageSearchTerm;
+		dropdownItem.title = `${languageSearchTerm} (${languageCode})`;
+		dropdownItem.innerHTML = `<img>`;
+		dropdownItem.querySelector('img').src = svgPath;
+
+		dropdownItem.onclick = () => {
+			localStorage.setItem(storageLanguageKey, languageCode);
+			selectedFlagImg.src = svgPath;
+			load(languageCode, true);
+		};
+
+		return dropdownItem;
+	}
+
+	async function fetchJson(path) {
+		const response = await fetch(path);
+
+		return response.json();
+	}
+
 	function initializeLanguageDropdown(dropdownElem) {
 		// Avoid re-attaching event listeners
 		if (dropdownElem.dataset.initialized) return;
@@ -30,29 +54,9 @@
 
 		selectedFlagImg.src = getFlagPath(currentLang);
 
-		if (listContainer) {
-			availableLanguages.forEach(x => {
-				const languageCode = x[0];
-				const languageSearchTerm = x[1];
-				const svgPath = getFlagPath(languageCode);
-
-				const dropdownItem = document.createElement('div');
-				dropdownItem.classList.add('dropdown-item');
-				dropdownItem.dataset.value = languageSearchTerm;
-				dropdownItem.title = languageSearchTerm + ` (${languageCode})`;
-				dropdownItem.innerHTML = `<img>`;
-		
-				dropdownItem.querySelector('img').src = svgPath;
-		
-				listContainer.appendChild(dropdownItem);
-
-				dropdownItem.onclick = function() {
-					localStorage.setItem(storageLanguageKey, languageCode);
-
-					selectedFlagImg.src = svgPath;
-
-					load(languageCode, true);
-				};
+		if(listContainer) {
+			availableLanguages.forEach(language => {
+				listContainer.appendChild(createLanguageDropdownItem(language, selectedFlagImg));
 			});
 		}
 	}
@@ -61,11 +65,8 @@
 		try {
 			const additionalPrefix = isSecondaryPage ? '../' : '';
 
-			const response = await fetch(additionalPrefix + `../assets/i18n/${lang}.json`);
-			const translationObj = await response.json();
-
-			const metaResponse = await fetch(additionalPrefix + `../assets/i18n/meta.json`);
-			const metaObj = await metaResponse.json();
+			const translationObj = await fetchJson(additionalPrefix + `../assets/i18n/${lang}.json`);
+			const metaObj = await fetchJson(additionalPrefix + `../assets/i18n/meta.json`);
 			const availableLanguagesArr = metaObj.availableLanguages;
 
 			FULL_TRANS_OBJ = translationObj; // set global variable on acas-globals.js so that other files can access translations
@@ -127,7 +128,7 @@
 	}
 
 	function translateConfig() {
-		Object.keys(configTranslations).map(async key => {
+		Object.keys(configTranslations).forEach(async key => {
 			// The default timeout is ~2.8 hours, so every key without a matching element
 			// left a 100ms poll running for the rest of the session
 			const parentElement = await WAIT_FOR_ELEMENT(`[data-key="${key}"]`, 10000);

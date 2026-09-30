@@ -16,6 +16,16 @@ const clients = new Set();
 let wssRef = null;
 let warnedAboutMultipleClients = false;
 
+function sendToMainWindow(channel, payload) {
+    if(!mainWindow || mainWindow.isDestroyed()) return;
+
+    mainWindow.webContents.send(channel, payload);
+}
+
+function removeClient(ws) {
+    clients.delete(ws);
+}
+
 function broadcastToClients(payloadObj) {
     const data = JSON.stringify(payloadObj);
 
@@ -40,6 +50,14 @@ function getIdentifierKey(identifierObj) {
     // {profileName:'ab', instanceId:'1'} produced the same key, which made two
     // instances share an engine start lock and a console view.
     return JSON.stringify([identifierObj.engineId, identifierObj.profileName, identifierObj.instanceId]);
+}
+
+function notifyClientChange(isConnected, origin) {
+    sendToMainWindow('serverClientChange', { isConnected, origin });
+}
+
+function notifyUnauthorizedOrigin(origin) {
+    sendToMainWindow('serverUnauthorized', { origin });
 }
 
 async function handleClientUciCommand(cmdObj) {
@@ -133,13 +151,11 @@ function onCommandReceived(remoteCommand) {
 }
 
 function emitListeningState(wss) {
-    if(!mainWindow || mainWindow.isDestroyed()) return;
-
     const addressObj = wss.httpServer?.address();
 
     if(!addressObj) return;
 
-    mainWindow.webContents.send('serverListening', {
+    sendToMainWindow('serverListening', {
         address: addressObj.address,
         family: addressObj.family,
         port: addressObj.port
@@ -165,7 +181,9 @@ export function startLocalWSS() {
     server.on('upgrade', (request, socket, head) => {
         const origin = request.headers.origin || 'unknown';
 
-        if(ALLOWED_ORIGIN?.length > 0 && !ALLOWED_ORIGIN.includes(origin)) {
+        const isOriginAllowed = ALLOWED_ORIGIN.length === 0 || ALLOWED_ORIGIN.includes(origin);
+
+        if(!isOriginAllowed) {
             if(wss.onUnauthorized) wss.onUnauthorized(origin);
 
             socket.destroy();
@@ -188,7 +206,7 @@ export function startLocalWSS() {
         });
 
         ws.on('close', () => {
-            clients.delete(ws);
+            removeClient(ws);
 
             if(wss.onClientChange) wss.onClientChange(false);
         });
@@ -196,28 +214,14 @@ export function startLocalWSS() {
         // ws requires this, without it a client resetting mid-frame throws
         ws.on('error', err => {
             console.error('[server] client socket error:', err?.message);
-            clients.delete(ws);
+            removeClient(ws);
         });
     });
 
     wss.httpServer.on('listening', () => emitListeningState(wss));
 
-    wss.onClientChange = (isConnected, origin) => {
-        if(!mainWindow || mainWindow.isDestroyed()) return;
-
-        mainWindow.webContents.send('serverClientChange', {
-            isConnected,
-            origin
-        });
-    };
-
-    wss.onUnauthorized = (origin) => {
-        if(!mainWindow || mainWindow.isDestroyed()) return;
-
-        mainWindow.webContents.send('serverUnauthorized', {
-            origin
-        });
-    };
+    wss.onClientChange = notifyClientChange;
+    wss.onUnauthorized = notifyUnauthorizedOrigin;
 
     // Emitted asynchronously, so with no listener EADDRINUSE takes the process down
     // and the window is left showing OFFLINE forever

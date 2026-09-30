@@ -5,6 +5,17 @@ import { guiBroadcastChannel } from '../gui.js';
 import { ensureOneDynamicEngineSettingVisible } from './dynamicEngineOptions.js';
 import { closeAllExternalEnginesWithId } from '../AcasWebSocketClient.js';
 
+function getProfileTabItems(tabsElem) {
+    return [...tabsElem.querySelectorAll('.tab-item')]
+        .filter(item => item?.dataset?.value);
+}
+
+function selectProfileTabItem(tabsElem, selectedItem) {
+    getProfileTabItems(tabsElem).forEach(item => {
+        item.classList.toggle('selected-tab-item', item === selectedItem);
+    });
+}
+
 function settingPanelTransitionAnimation(duration = 400) {
     if(!duration) return;
     if(!settingsPanelsElem) return;
@@ -53,7 +64,7 @@ function selectNearestProfileTab(tabsElem, profileName) {
     const listContainerElem = tabsElem.querySelector('.tabs-list-container');
     if(!listContainerElem) return;
 
-    const listTabItems = [...listContainerElem.children].filter(x => x?.dataset?.value);
+    const listTabItems = [...listContainerElem.children].filter(item => item?.dataset?.value);
     const formattedName = GET_PROFILE_STORAGE_KEY(profileName);
     const indexOfCurrentTab = listTabItems.findIndex(x => x.dataset.value === formattedName);
 
@@ -80,8 +91,7 @@ export function setProfileBubbleStatus(status, profileName, title = status) {
         if(c.includes('pbs-')) bubble.classList.remove(c);
     });
 
-    if(status !== 'disabled') bubble.parentElement.style.opacity = '1';
-    else if(status === 'disabled') bubble.parentElement.style.opacity = '0.5';
+    bubble.parentElement.style.opacity = status === 'disabled' ? '0.5' : '1';
 
     bubble.classList.add(`pbs-${status}`);
     bubble.parentElement.title = 'Engine status: ' + title;
@@ -125,13 +135,7 @@ function addProfileTabItem(tabsElem, profileName, isDefault) {
     itemElem.onclick = e => {
         inputElem.value = profileName;
 
-        const listItems = [...listContainerElem.querySelectorAll('.tab-item')]
-            .filter(x => x?.dataset?.value);
-
-        const selectedClass = 'selected-tab-item';
-
-        listItems.forEach(x => x.classList.remove(selectedClass));
-        itemElem.classList.add(selectedClass);
+        selectProfileTabItem(tabsElem, itemElem);
 
         const transitionTime = (e.isTrusted) ? 600 : null;
         settingPanelTransitionAnimation(transitionTime);
@@ -191,7 +195,7 @@ export async function fillProfileTabs() {
     for(const profileName of profileNames) {
         const formattedName = GET_PROFILE_STORAGE_KEY(profileName);
 
-        const nameExists = [...profileTabs.querySelectorAll('.tab-item')].find(
+        const nameExists = getProfileTabItems(profileTabs).find(
             elem => elem.dataset.value === formattedName
         );
 
@@ -220,7 +224,7 @@ export function createNewProfile() {
         const profileName = GET_PROFILE_STORAGE_KEY(trimmedUserInput);
 
         const formattedName = GET_PROFILE_STORAGE_KEY(profileName);
-        const nameExists = [...profileTabs.querySelectorAll('.tab-item')]
+        const nameExists = getProfileTabItems(profileTabs)
             .find(elem => elem.dataset.value === formattedName);
 
         if(nameExists) {

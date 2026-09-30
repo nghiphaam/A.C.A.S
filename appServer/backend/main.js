@@ -62,43 +62,40 @@ function createAndTrackWindow({ startServer = false } = {}) {
 	return mainWindow;
 }
 
+function registerIpcHandlers() {
+	const handlers = {
+		killAllEngines: () => killAllEngines(),
+		clearCache: () => clearCache(),
+		getSavedEngines: () => getSavedEngines(),
+		sendEnginesList: () => sendEnginesList(),
+		sendManualUciToEngine: (_event, cmd, identifierObj) => sendManualUciToEngine(cmd, identifierObj),
+		addEngine: (_event, fileInfo, title) => addEngine(fileInfo, title),
+		removeEngine: (_event, enginePath) => removeEngine(enginePath)
+	};
+
+	Object.entries(handlers).forEach(([channel, handler]) => {
+		ipcMain.handle(channel, handler);
+	});
+
+	ipcMain.handle('pickFile', pickEngineFile);
+}
+
+async function pickEngineFile() {
+	const result = await dialog.showOpenDialog(mainWindow, {
+		properties: ['openFile'],
+		filters: [{
+			name: 'Executables',
+			extensions: getExecutableExtensions()
+		}]
+	});
+
+	return result.canceled ? null : result.filePaths[0];
+}
+
 app.whenReady().then(() => {
 	createAndTrackWindow({ 'startServer': true });
 
-	ipcMain.handle('killAllEngines',
-		async (event) => killAllEngines());
-
-    ipcMain.handle('clearCache',
-		async (event) => clearCache());
-
-	ipcMain.handle('getSavedEngines',
-		async (event) => getSavedEngines());
-
-	ipcMain.handle('sendEnginesList',
-		async (event) => sendEnginesList());
-
-	ipcMain.handle('sendManualUciToEngine',
-		async (event, cmd, identifierObj) => sendManualUciToEngine(cmd, identifierObj));
-
-	ipcMain.handle('addEngine',
-		async (event, fileInfo, title) => addEngine(fileInfo, title));
-
-	ipcMain.handle('removeEngine',
-		async (event, enginePath) => removeEngine(enginePath));
-	
-	ipcMain.handle('pickFile', async () => {
-		const result = await dialog.showOpenDialog(mainWindow, {
-			properties: ['openFile'],
-			filters: [{
-				name: 'Executables',
-				extensions: getExecutableExtensions()
-			}]
-		});
-
-		if(!result.canceled) return result.filePaths[0];
-
-		return null;
-	});
+	registerIpcHandlers();
 
     console.log('Ready!');
 });

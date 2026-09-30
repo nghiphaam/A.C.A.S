@@ -1,6 +1,35 @@
 import { externalChessEngineDropdown } from './elementDeclarations.js';
 import { setInputValue, initializeSettingInputElem } from './domInputs.js';
 
+function setEngineListVisibility(engines, dropdownListContainer, installText) {
+    const hasEngines = engines?.length !== 0;
+
+    dropdownListContainer.classList.toggle('hidden', !hasEngines);
+    installText.classList.toggle('hidden', hasEngines);
+}
+
+function createEngineDropdownItem(engine, engineId, isSelected) {
+    const item = document.createElement('div');
+    item.className = 'dropdown-item large';
+    item.dataset.value = engineId;
+    item.classList.toggle('selected-list-item', isSelected);
+
+    const headerDiv = document.createElement('div');
+    headerDiv.textContent = `${engine?.title || ''} `;
+
+    const typeTag = document.createElement('span');
+    typeTag.className = 'engine-type-tag list-tag';
+    typeTag.textContent = engine?.name || '';
+    headerDiv.appendChild(typeTag);
+
+    const path = document.createElement('small');
+    path.textContent = GET_NICE_PATH(engine?.path);
+
+    item.append(headerDiv, path);
+
+    return item;
+}
+
 export async function updateEnginesList(engines) {
     const installText = document.querySelector('#install-acas-server-text');
     const dropdownListContainer = externalChessEngineDropdown.querySelector('.dropdown-list-container');
@@ -8,20 +37,9 @@ export async function updateEnginesList(engines) {
 
     const selectedEngineID = await GET_GM_CFG_VALUE('externalChessEngine', SETTING_FILTER_OBJ.instanceID, SETTING_FILTER_OBJ.profileID);
 
-    function toggleDropdown() {
-        if(engines?.length !== 0) {
-            dropdownListContainer.classList.remove('hidden');
-            installText.classList.add('hidden');
-        } else {
-            dropdownListContainer.classList.add('hidden');
-            installText.classList.remove('hidden');
-        }
-    }
-
-    toggleDropdown();
+    setEngineListVisibility(engines, dropdownListContainer, installText);
 
     const currentIds = new Set(engines.map(e => String(e.engineId)));
-    const selectedItemClass = 'selected-list-item';
 
     const existingElements = dropdownListContainer.querySelectorAll('.dropdown-item');
     existingElements.forEach(el => {
@@ -81,29 +99,10 @@ export async function updateEnginesList(engines) {
             continue;
         }
 
-        const item = document.createElement('div');
-        item.className = 'dropdown-item large';
-        item.dataset.value = engineId;
+        const isSelected = engineId === String(selectedEngineID);
+        const item = createEngineDropdownItem(engine, engineId, isSelected);
 
-        if(engineId === String(selectedEngineID)) {
-            item.classList.add(selectedItemClass);
-            foundSelectedEngineID = true;
-        }
-        
-        const headerDiv = document.createElement('div');
-        headerDiv.textContent = `${engine?.title || ''} `;
-        
-        const typeTag = document.createElement('span');
-        typeTag.className = 'engine-type-tag list-tag';
-        typeTag.textContent = engine?.name || '';
-        
-        headerDiv.appendChild(typeTag);
-
-        const small = document.createElement('small');
-        small.textContent = GET_NICE_PATH(engine?.path);
-
-        item.appendChild(headerDiv);
-        item.appendChild(small);
+        if(isSelected) foundSelectedEngineID = true;
 
         dropdownListContainer.appendChild(item);
 

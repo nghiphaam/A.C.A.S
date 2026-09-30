@@ -5,6 +5,10 @@ import { loopThroughAndUpdateSettingsValues } from './settings.js';
 
 const options = [settingsNavbarGlobalElem, settingsInstanceDropdownElem];
 
+function setElementsDisabled(elements, isDisabled) {
+    elements.forEach(element => element.classList.toggle('disabled', isDisabled));
+}
+
 export function toggleSelectedNavbarItem(selectedElem, instanceID) {
     SETTING_FILTER_OBJ.type = selectedElem.dataset.type;
     SETTING_FILTER_OBJ.instanceID = null;
@@ -21,12 +25,7 @@ export function toggleSelectedNavbarItem(selectedElem, instanceID) {
             break;
     }
     
-    options.forEach(elem => {
-        if(elem === selectedElem) 
-            elem.classList.add('selected');
-        else 
-            elem.classList.remove('selected');
-    });
+    options.forEach(elem => elem.classList.toggle('selected', elem === selectedElem));
 
     loopThroughAndUpdateSettingsValues();
 }
@@ -34,15 +33,9 @@ export function toggleSelectedNavbarItem(selectedElem, instanceID) {
 export function setInstanceSelectionStatus(doHide) {
     const instanceSettingsBtns = [...document.querySelectorAll('.instance-settings-btn')];
 
-    if(doHide) {
-        settingsNavbarElem.classList.add('disabled');
-        instanceSettingsBtns.forEach(x => x.classList.add('disabled'));
-        IS_INSTANCE_SETTING_BTN_DISABLED = true;
-    } else {
-        settingsNavbarElem.classList.remove('disabled');
-        instanceSettingsBtns.forEach(x => x.classList.remove('disabled'));
-        IS_INSTANCE_SETTING_BTN_DISABLED = false;
-    }
+    settingsNavbarElem.classList.toggle('disabled', doHide);
+    setElementsDisabled(instanceSettingsBtns, doHide);
+    IS_INSTANCE_SETTING_BTN_DISABLED = doHide;
 }
 
 export function addInstanceToSettingsDropdown(instanceID, domain, chessVariant, instanceElem) {

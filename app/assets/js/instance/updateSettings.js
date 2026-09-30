@@ -1,5 +1,9 @@
 import { updatePipData } from '../gui/pip.js';
 
+function wasSettingUpdated(updateData, key) {
+    return Object.values(updateData).includes(key);
+}
+
 export default async function updateSettings(updateObj) {
     const settingKey = updateObj?.data?.key,
           settingValue = updateObj?.data?.value;
@@ -35,21 +39,19 @@ export default async function updateSettings(updateObj) {
     const chessVariant = FORMAT_VARIANT(await this.getConfigValue(this.configKeys.chessVariant, profileName));
     const useChess960 = await this.getConfigValue(this.configKeys.useChess960, profileName);
 
-    const findSetting = key => Object.values(updateObj?.data)?.includes(key);
-    const didUpdateVariant = findSetting(this.configKeys.chessVariant);
+    const didUpdateVariant = wasSettingUpdated(updateObj.data, this.configKeys.chessVariant);
     const didUpdateElo = [this.configKeys.engineElo, this.configKeys.engineEnemyElo]
-        .find(key => findSetting(key));
-    const didUpdateLc0Weight = findSetting(this.configKeys.lc0Weight);
-    const didUpdateChessFont = findSetting(this.configKeys.chessFont);
-    const didUpdateMultiPV = findSetting(this.configKeys.moveSuggestionAmount);
-    const didUpdate960Mode = findSetting(this.configKeys.useChess960);
-    const didUpdateChessEngine = findSetting(this.configKeys.chessEngine);
-    const didUpdateEngineEnabled = findSetting(this.configKeys.engineEnabled);
-    const didUpdateNodes = findSetting(this.configKeys.engineNodes);
-    const didUpdateChessEngineProfile = findSetting(this.configKeys.chessEngineProfile);
-    const didUpdateAdvancedElo = findSetting(this.configKeys.enableAdvancedElo);
-    const didUpdateAdvancedEloDepth = findSetting(this.configKeys.advancedEloDepth);
-    const didUpdateSearchNodes = findSetting(this.configKeys.engineNodes);
+        .find(key => wasSettingUpdated(updateObj.data, key));
+    const didUpdateLc0Weight = wasSettingUpdated(updateObj.data, this.configKeys.lc0Weight);
+    const didUpdateChessFont = wasSettingUpdated(updateObj.data, this.configKeys.chessFont);
+    const didUpdateMultiPV = wasSettingUpdated(updateObj.data, this.configKeys.moveSuggestionAmount);
+    const didUpdate960Mode = wasSettingUpdated(updateObj.data, this.configKeys.useChess960);
+    const didUpdateChessEngine = wasSettingUpdated(updateObj.data, this.configKeys.chessEngine);
+    const didUpdateEngineEnabled = wasSettingUpdated(updateObj.data, this.configKeys.engineEnabled);
+    const didUpdateChessEngineProfile = wasSettingUpdated(updateObj.data, this.configKeys.chessEngineProfile);
+    const didUpdateAdvancedElo = wasSettingUpdated(updateObj.data, this.configKeys.enableAdvancedElo);
+    const didUpdateAdvancedEloDepth = wasSettingUpdated(updateObj.data, this.configKeys.advancedEloDepth);
+    const didUpdateSearchNodes = wasSettingUpdated(updateObj.data, this.configKeys.engineNodes);
 
     if(didUpdateVariant || didUpdate960Mode) {
         // Both of these reach into this.pV[profileName]. A profile whose engine is off was

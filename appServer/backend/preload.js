@@ -1,35 +1,36 @@
 import { contextBridge, ipcRenderer, shell } from 'electron';
 
+const invoke = (channel) => (...args) => ipcRenderer.invoke(channel, ...args);
+const subscribe = (channel) => (callback) =>
+	ipcRenderer.on(channel, (_event, data) => callback(data));
+
 contextBridge.exposeInMainWorld('engineAPI', {
-	killAllEngines: () => ipcRenderer.invoke('killAllEngines'),
-    clearCache: () => ipcRenderer.invoke('clearCache'),
-	getSavedEngines: () => ipcRenderer.invoke('getSavedEngines'),
-	sendManualUciToEngine: (cmd, identifierObj) => ipcRenderer.invoke('sendManualUciToEngine', cmd, identifierObj),
-	addEngine: (fileInfo, title) => ipcRenderer.invoke('addEngine', fileInfo, title),
-	removeEngine: (enginePath) => ipcRenderer.invoke('removeEngine', enginePath),
-	onRenderEngineGrid: (callback) => ipcRenderer.on('renderEngineGrid', (event, data) => callback(data)),
-	onAddConsoleView: (callback) => ipcRenderer.on('addConsoleView', (event, data) => callback(data)),
-	onRemoveConsoleView: (callback) => ipcRenderer.on('removeConsoleView', (event, data) => callback(data)),
-	onRefreshEngineCards: (callback) => ipcRenderer.on('refreshEngineCards', (event, data) => callback(data)),
-	onLog: (callback) => ipcRenderer.on('log', (event, data) => callback(data))
+	killAllEngines: invoke('killAllEngines'),
+    clearCache: invoke('clearCache'),
+	getSavedEngines: invoke('getSavedEngines'),
+	sendManualUciToEngine: invoke('sendManualUciToEngine'),
+	addEngine: invoke('addEngine'),
+	removeEngine: invoke('removeEngine'),
+	onRenderEngineGrid: subscribe('renderEngineGrid'),
+	onAddConsoleView: subscribe('addConsoleView'),
+	onRemoveConsoleView: subscribe('removeConsoleView'),
+	onRefreshEngineCards: subscribe('refreshEngineCards'),
+	onLog: subscribe('log')
 });
 
 contextBridge.exposeInMainWorld('serverAPI', {
-	onListening: (callback) => ipcRenderer.on('serverListening', (event, data) => callback(data)),
-	onClientChange: (callback) => ipcRenderer.on('serverClientChange', (event, data) => callback(data)),
-	onUnauthorized: (callback) => ipcRenderer.on('serverUnauthorized', (event, data) => callback(data)),
-	sendEnginesList: () => ipcRenderer.invoke('sendEnginesList')
+	onListening: subscribe('serverListening'),
+	onClientChange: subscribe('serverClientChange'),
+	onUnauthorized: subscribe('serverUnauthorized'),
+	sendEnginesList: invoke('sendEnginesList')
 });
 
 contextBridge.exposeInMainWorld('fileAPI', {
-	pickFile: async () => {
-		const filePath = await ipcRenderer.invoke('pickFile');
-		return filePath;
-	}
+	pickFile: invoke('pickFile')
 });
 
 contextBridge.exposeInMainWorld('toastAPI', {
-	onMessage: (callback) => ipcRenderer.on('toast', (event, data) => callback(data))
+	onMessage: subscribe('toast')
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {

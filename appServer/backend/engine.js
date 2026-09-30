@@ -55,7 +55,7 @@ function addAliveEngineObj(engineObj) {
 }
 
 export function findAliveEngineObj(identifierObj) {
-    const { engineId, profileName, instanceId, identifierKey } = identifierObj;
+    const { engineId, profileName, instanceId } = identifierObj;
 
     return aliveEngineProcesses.find(ep =>
         ep.identifierObj.engineId === engineId &&
@@ -227,7 +227,7 @@ export function sendToProcess(cmd, identifierObj, type = 'user') {
 }
 
 export async function startEngine(enginePath, identifierObj) {
-    const { engineId, profileName, instanceId, identifierKey } = identifierObj;
+    const { identifierKey } = identifierObj;
 
     if(engineStartLocks.has(identifierKey))
         return engineStartLocks.get(identifierKey);

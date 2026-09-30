@@ -74,6 +74,34 @@ function getDynamicEngineSettingDatasetKey(engineId, profileName) {
     return `DYNAMIC_${engineId}_${profileName}`;
 }
 
+function getOrCreateProfileContainer(profileContainerId, profileName) {
+    let profileContainer = dynamicSettingsContainer.querySelector(
+        `.dynamic-setting-profile-container[data-id="${profileContainerId}"]`
+    );
+
+    if(profileContainer) return profileContainer;
+
+    profileContainer = document.createElement('div');
+    profileContainer.classList.add('dynamic-setting-profile-container');
+    profileContainer.dataset.id = profileContainerId;
+
+    if(profileName !== SETTING_FILTER_OBJ.profileID)
+        profileContainer.classList.add('hidden');
+
+    dynamicSettingsContainer.appendChild(profileContainer);
+
+    return profileContainer;
+}
+
+function createDynamicDropdownItem(value) {
+    const item = document.createElement('div');
+    item.classList.add('dropdown-item');
+    item.dataset.value = value;
+    item.innerText = value;
+
+    return item;
+}
+
 export function ensureOneDynamicEngineSettingVisible(engineId) {
     const dynamicEngineSettingContainers = [...document.querySelectorAll('.dynamic-setting-profile-container')];
 
@@ -123,30 +151,10 @@ export async function fillDynamicEngineOptionContainer(uciMsg, profileName) {
 
     setDynamicOption(dbKey, { name, defaultValue }, profileName);
 
-    let profileContainer = dynamicSettingsContainer.querySelector(`.dynamic-setting-profile-container[data-id="${profileContainerId}"]`);
-    if(!profileContainer) {
-        profileContainer = document.createElement('div');
-        profileContainer.classList.add('dynamic-setting-profile-container');
-        profileContainer.dataset.id = profileContainerId;
-
-        if(profileName !== SETTING_FILTER_OBJ.profileID)
-            profileContainer.classList.add('hidden');
-
-        dynamicSettingsContainer.appendChild(profileContainer);
-    }
+    const profileContainer = getOrCreateProfileContainer(profileContainerId, profileName);
 
     const doesOptionAlreadyExist = profileContainer.querySelector(`*[data-key="${dbKey}"]`);
     if(doesOptionAlreadyExist) return;
-
-    const createDropdownItem = value => {
-        const item = document.createElement('div');
-
-        item.classList.add('dropdown-item');
-        item.dataset.value = value;
-        item.innerText = value;
-
-        return item;
-    };
 
     const createInput = () => {
         const container = document.createElement('div'),
@@ -226,7 +234,7 @@ export async function fillDynamicEngineOptionContainer(uciMsg, profileName) {
 
                 // A combo option without any var tokens leaves vars undefined
                 (vars ?? []).forEach(v => {
-                    dropdownListContainer.appendChild(createDropdownItem(v.replaceAll(' ', '')));
+                    dropdownListContainer.appendChild(createDynamicDropdownItem(v.replaceAll(' ', '')));
                 });
 
                 container.classList.add('dropdown-input');

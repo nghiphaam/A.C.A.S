@@ -3,6 +3,31 @@
 const MAX_LOG_LINES = 2000;
 const CONSOLE_OBJS = new Map();
 
+function createTimestamp() {
+    return new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        fractionalSecondDigits: 3,
+        hour12: false
+    });
+}
+
+function createLogEntry(text, type, timestamp) {
+    const entry = document.createElement('div');
+    entry.classList.add('log-entry', `type-${type}`);
+    entry.innerHTML = `<span class="timestamp">${timestamp}</span><span class="msg-body"></span>`;
+    entry.querySelector('.msg-body').textContent = text;
+
+    return entry;
+}
+
+function updateLogEntryVisibility(entry, filterText, visibleDisplay = 'flex') {
+    entry.style.display = entry.textContent.toLowerCase().includes(filterText)
+        ? visibleDisplay
+        : 'none';
+}
+
 async function log(text, type = 'info', identifierObj) {
     if(text?.length === 0) return;
 
@@ -14,26 +39,13 @@ async function log(text, type = 'info', identifierObj) {
 
     if(isPaused()) return;
 
-    const timestamp = new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        fractionalSecondDigits: 3,
-        hour12: false
-    });
-
-    const div = document.createElement('div');
-    div.classList.add('log-entry', `type-${type}`);
-    div.innerHTML = `<span class="timestamp">${timestamp}</span><span class="msg-body"></span>`;
-    div.querySelector('.msg-body').textContent = text;
-
     const currentFilter = filterInput.value.toLowerCase();
-    if(currentFilter && !div.textContent.toLowerCase().includes(currentFilter))
-        div.style.display = 'none';
+    const entry = createLogEntry(text, type, createTimestamp());
+    if(currentFilter) updateLogEntryVisibility(entry, currentFilter, '');
 
     const shouldScroll = logDiv.scrollHeight - logDiv.clientHeight <= logDiv.scrollTop + 60;
 
-    logDiv.appendChild(div);
+    logDiv.appendChild(entry);
 
     if(logDiv.childNodes.length > MAX_LOG_LINES) {
         logDiv.removeChild(logDiv.firstChild);
@@ -87,7 +99,7 @@ function addConsoleView(identifierObj) {
     filterInput.addEventListener('input', () => {
         const filterText = filterInput.value.toLowerCase();
         logDiv.querySelectorAll('.log-entry').forEach(entry => {
-            entry.style.display = entry.textContent.toLowerCase().includes(filterText) ? 'flex' : 'none';
+            updateLogEntryVisibility(entry, filterText);
         });
     });
 

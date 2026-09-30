@@ -7,6 +7,15 @@ window.AcasInstances = [];
 let initToasts = [];
 let instanceLock = Promise.resolve();
 
+function getInstanceRecord(instanceID) {
+    return window.AcasInstances.find(instanceObj => instanceObj.id === instanceID);
+}
+
+function hasExternalEngines() {
+    return [...externalChessEngineDropdown?.querySelectorAll('.dropdown-item.large') || []]
+        .length > 0;
+}
+
 export function createInstance(domain, instanceID, chessVariant) {
     instanceLock = instanceLock.then(() =>
         _createInstanceSafe(domain, instanceID, chessVariant)
@@ -31,9 +40,7 @@ async function _createInstanceSafe(domain, instanceID, chessVariant) {
             return;
         }
 
-        const hasExternalEnginesAdded =
-            [...externalChessEngineDropdown?.querySelectorAll('.dropdown-item.large') || []]
-                .length > 0;
+        const hasExternalEnginesAdded = hasExternalEngines();
 
         const isExternalReady = window.wsConnectionOpen && hasExternalEnginesAdded;
         const isReadyToContinue = isExternalReady || !window.useExternalEngine;
@@ -45,7 +52,7 @@ async function _createInstanceSafe(domain, instanceID, chessVariant) {
 
         if(isExternalReady) await new Promise(res => setTimeout(res, 1000));
 
-        const instanceExists = window.AcasInstances.find(instanceObj => instanceObj.id === instanceID);
+        const instanceExists = getInstanceRecord(instanceID);
 
         if(instanceExists) {
             prelongInstanceLife(domain, instanceID, chessVariant);
@@ -96,7 +103,7 @@ function instanceLoaded(informationObj) {
 }
 
 function prelongInstanceLife(domain, instanceID, chessVariant) {
-    const instanceObj = window.AcasInstances.find(instanceObj => instanceObj.id === instanceID);
+    const instanceObj = getInstanceRecord(instanceID);
 
     if(instanceObj) {
         instanceObj.date = Date.now();

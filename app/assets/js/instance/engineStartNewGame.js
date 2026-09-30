@@ -43,6 +43,10 @@ async function startWithDynamicOptions(variant, engineName, profile) {
     }
 }
 
+function getProfilesToStart(profile, profileValues) {
+    return profile ? [profile] : Object.keys(profileValues);
+}
+
 /* Activated on;
     1.) Start of totally new instances.
     2.) Board had a certain amount of squares which had changes (userscript determines this)
@@ -73,17 +77,17 @@ export default async function engineStartNewGame(variant, profile) {
         this.sendMsgToEngine('uci', profileName); // to display variants and other details
         this.sendMsgToEngine('ucinewgame', profileName); // very important to be before setting variant and so forth
 
-        if(isAdvancedElo) await startWithDynamicOptions.bind(this)(chessVariant, engineName, profileName);
-        else await startWithBasicOptions.bind(this)(chessVariant, engineName, profileName);
+        if(isAdvancedElo) await startWithDynamicOptions.call(this, chessVariant, engineName, profileName);
+        else await startWithBasicOptions.call(this, chessVariant, engineName, profileName);
 
         this.sendMsgToEngine('position startpos', profileName);
         if(engineName !== 'lc0') this.sendMsgToEngine('d', profileName);
     };
 
     // When no profile is given (e.g. on a new match) start a new game for every profile.
-    if(!profile) {
-        await Promise.all(Object.keys(this.pV).map(startForProfile));
-    } else {
+    if(profile) {
         await startForProfile(profile);
+    } else {
+        await Promise.all(getProfilesToStart(profile, this.pV).map(startForProfile));
     }
 }

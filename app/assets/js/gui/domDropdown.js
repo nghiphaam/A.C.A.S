@@ -21,6 +21,17 @@ export function addDropdownItem(dropdownElem, itemValue, itemText) {
     return itemElem;
 }
 
+function getDropdownItems(listContainerElem) {
+    return [...listContainerElem.querySelectorAll('.dropdown-item')]
+        .filter(item => item?.dataset?.value);
+}
+
+function setSelectedItem(items, selectedItem) {
+    const selectedClass = 'selected-list-item';
+
+    items.forEach(item => item.classList.toggle(selectedClass, item === selectedItem));
+}
+
 function removeDropdownItem(dropdownElem, itemValue, newValue) {
     const dropdownItem = dropdownElem.querySelector(`*[data-value="${itemValue}"]`);
     const dropdownInput = dropdownElem.querySelector('input[data-default-value]');
@@ -38,8 +49,7 @@ export function initializeDropdown(dropdownElem) {
     const listContainerElem = dropdownElem.querySelector('.dropdown-list-container');
 
     function updateDropdown(showAll) {
-        const listItems = [...listContainerElem.querySelectorAll('.dropdown-item')]
-            .filter(x => x?.dataset?.value);
+        const listItems = getDropdownItems(listContainerElem);
 
         const optionsArr = listItems.map(elem => elem.dataset.value?.toLowerCase() || "");
         
@@ -54,7 +64,6 @@ export function initializeDropdown(dropdownElem) {
         );
             
         const options = showAll ? optionsArr : filteredOptions;
-        const selectedClass = 'selected-list-item';
         const currentValue = inputElem.value?.toLowerCase()?.trim();
 
         listItems.forEach(elem => {
@@ -66,11 +75,7 @@ export function initializeDropdown(dropdownElem) {
                 elem.classList.add('hidden');
             }
 
-            if(currentValue && elemValue === currentValue) {
-                elem.classList.add(selectedClass);
-            } else {
-                elem.classList.remove(selectedClass);
-            }
+            elem.classList.toggle('selected-list-item', Boolean(currentValue && elemValue === currentValue));
         });
 
         listItems
@@ -79,12 +84,7 @@ export function initializeDropdown(dropdownElem) {
                 elem.addEventListener('click', e => {
                     inputElem.value = elem.dataset.value;
 
-                    const updatedListItems = [...listContainerElem.querySelectorAll('.dropdown-item')]
-                        .filter(x => x?.dataset?.value);
-
-                    const selectedClass ='selected-list-item';
-                    updatedListItems.forEach(x => x.classList.remove(selectedClass));
-                    elem.classList.add(selectedClass);
+                    setSelectedItem(getDropdownItems(listContainerElem), elem);
 
                     setTimeout(() => {
                         inputElem.dispatchEvent(new Event('change'));
